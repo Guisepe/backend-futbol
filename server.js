@@ -7,21 +7,26 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Configuración flexible para Local (PC) y para Producción (Railway)
+// Configuración flexible para Railway/Aiven
 const db = mysql.createConnection({
-    host: process.env.DB_HOST || '127.0.0.1',
-    port: process.env.DB_PORT || 3307, // Usará el puerto asignado por Railway o el 3307 local
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '123456',
-    database: process.env.DB_DATABASE || 'pagosfutbol'
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
+  port: process.env.DB_PORT
 });
 
-db.connect(err => {
-    if (err) {
-        console.error('Error conectando a la BD:', err);
-        return;
-    }
-    console.log('BD MySQL Conectada...');
+db.connect((err) => {
+  if (err) {
+    console.error('Error conectando a la BD: ' + err.stack);
+    return;
+  }
+  console.log('Conectado a la base de datos con ID: ' + db.threadId);
+});
+
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en puerto ${PORT}`);
 });
 
 // 1. Obtener todos los jugadores

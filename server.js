@@ -7,9 +7,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Configuración flexible para Local (PC) y para Producción (Railway)
 const db = mysql.createConnection({
     host: process.env.DB_HOST || '127.0.0.1',
-    port: process.env.DB_PORT || 3307,
+    port: process.env.DB_PORT || 3307, // Usará el puerto asignado por Railway o el 3307 local
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '123456',
     database: process.env.DB_DATABASE || 'pagosfutbol'
@@ -79,5 +80,6 @@ app.post('/api/login', (req, res) => {
     });
 });
 
+// Railway asigna automáticamente la variable process.env.PORT en producción
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));

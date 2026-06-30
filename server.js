@@ -9,26 +9,31 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Conexión Directa: Si está en Railway usa tu URL interna, si no, cae en local
-const db = process.env.PORT 
-  ? mysql.createConnection('mysql://root:BmXRGaXRtiNyOEQUYzOBKyouluOZUHJJ@mysql.railway.internal:3306/railway')
-  : mysql.createConnection({
+// Usamos createPool para que maneje reconexiones automáticas si el servidor se cae
+const db = process.env.DATABASE_URL 
+  ? mysql.createPool(process.env.DATABASE_URL)
+  : mysql.createPool({
       host: 'localhost',
       user: 'root',
       password: '',
       database: 'futbol',
-      port: 3306
+      port: 3306,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0
     });
 
-db.connect((err) => {
+// Verificar estado de la base de datos de manera limpia con el Pool
+db.getConnection((err, connection) => {
   if (err) {
-    console.error('Error conectando a la Base de Datos:', err);
+    console.error('Error crítico conectando a la Base de Datos con el Pool:', err.message);
   } else {
-    console.log('¡Conexión exitosa a la base de datos de Railway!');
+    console.log('¡Conexión exitosa y estable a la base de datos de Railway mediante Pool!');
+    connection.release(); // Libera la verificación inicial
   }
 });
 
-// 1. Obtener todos los jugadores (Actualizado con blindaje de error)
+// 1. Obtener todos los jugadores
 app.get('/api/jugadores', (req, res) => {
   db.query('SELECT * FROM jugadores ORDER BY id DESC', (err, results) => {
     if (err) {
@@ -39,7 +44,7 @@ app.get('/api/jugadores', (req, res) => {
   });
 });
 
-// 2. Registrar nuevo jugador (Actualizado con blindaje de error)
+// 2. Registrar nuevo jugador
 app.post('/api/jugadores', (req, res) => {
   const { nombre } = req.body;
   if (!nombre) return res.status(400).json({ message: 'El nombre es requerido' });
@@ -53,7 +58,7 @@ app.post('/api/jugadores', (req, res) => {
   });
 });
 
-// 3. Actualizar pago de un jugador (Actualizado con blindaje de error)
+// 3. Actualizar pago de un jugador
 app.put('/api/jugadores/:id', (req, res) => {
   const { id } = req.params;
   const { pago_completado, monto_pagado } = req.body;
@@ -71,7 +76,7 @@ app.put('/api/jugadores/:id', (req, res) => {
   );
 });
 
-// 4. Eliminar jugador (Actualizado con blindaje de error)
+// 4. Eliminar jugador
 app.delete('/api/jugadores/:id', (req, res) => {
   const { id } = req.params;
   db.query('DELETE FROM jugadores WHERE id = ?', [id], (err, result) => {
@@ -83,7 +88,7 @@ app.delete('/api/jugadores/:id', (req, res) => {
   });
 });
 
-// Ruta de simulación de login para evitar errores 404 en el frontend
+// Ruta de simulación de login
 app.post('/api/login', (req, res) => {
   const { password } = req.body;
   res.json({ success: true, message: 'Login exitoso' });

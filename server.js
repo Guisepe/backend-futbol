@@ -9,27 +9,23 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Usamos createPool para que maneje reconexiones automáticas si el servidor se cae
-const db = process.env.DATABASE_URL 
-  ? mysql.createPool(process.env.DATABASE_URL)
-  : mysql.createPool({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'futbol',
-      port: 3306,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0
-    });
+// Conexión mediante Pool utilizando la URL pública definitiva de Railway
+const dbUrl = process.env.MYSQL_PUBLIC_URL || 'mysql://root:BmXRGaXRtiNyOEQUYzOBKyouluOZUHJJ@reseau.proxy.rlwy.net:38904/railway';
 
-// Verificar estado de la base de datos de manera limpia con el Pool
+const db = mysql.createPool({
+  uri: dbUrl,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+// Verificar conexión sin tumbar el proceso
 db.getConnection((err, connection) => {
   if (err) {
-    console.error('Error crítico conectando a la Base de Datos con el Pool:', err.message);
+    console.error('Error crítico conectando a la Base de Datos:', err.message);
   } else {
     console.log('¡Conexión exitosa y estable a la base de datos de Railway mediante Pool!');
-    connection.release(); // Libera la verificación inicial
+    connection.release();
   }
 });
 
@@ -37,7 +33,7 @@ db.getConnection((err, connection) => {
 app.get('/api/jugadores', (req, res) => {
   db.query('SELECT * FROM jugadores ORDER BY id DESC', (err, results) => {
     if (err) {
-      console.error("Error en SELECT:", err);
+      console.error("Error en SELECT:", err.message);
       return res.status(500).json({ error: 'Error al obtener jugadores de la base de datos' });
     }
     res.json(results || []);
@@ -51,7 +47,7 @@ app.post('/api/jugadores', (req, res) => {
 
   db.query('INSERT INTO jugadores (nombre) VALUES (?)', [nombre], (err, result) => {
     if (err) {
-      console.error("Error en INSERT:", err);
+      console.error("Error en INSERT:", err.message);
       return res.status(500).json({ error: 'Error al registrar el jugador' });
     }
     res.json({ message: 'Jugador agregado', id: result.insertId });
@@ -68,7 +64,7 @@ app.put('/api/jugadores/:id', (req, res) => {
     [pago_completado, monto_pagado, id],
     (err, result) => {
       if (err) {
-        console.error("Error en UPDATE:", err);
+        console.error("Error en UPDATE:", err.message);
         return res.status(500).json({ error: 'Error al actualizar el estado de pago' });
       }
       res.json({ message: 'Jugador actualizado correctamente' });
@@ -81,16 +77,15 @@ app.delete('/api/jugadores/:id', (req, res) => {
   const { id } = req.params;
   db.query('DELETE FROM jugadores WHERE id = ?', [id], (err, result) => {
     if (err) {
-      console.error("Error en DELETE:", err);
+      console.error("Error en DELETE:", err.message);
       return res.status(500).json({ error: 'Error al eliminar el jugador' });
     }
     res.json({ message: 'Jugador eliminado correctamente' });
   });
 });
 
-// Ruta de simulación de login
+// Ruta de simulación de login para evitar errores 404 en el frontend
 app.post('/api/login', (req, res) => {
-  const { password } = req.body;
   res.json({ success: true, message: 'Login exitoso' });
 });
 

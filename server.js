@@ -9,9 +9,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Reemplaza la sección de const db = mysql.createConnection(...) por esta:
-const db = process.env.DATABASE_URL 
-  ? mysql.createConnection(process.env.DATABASE_URL)
+// Conexión Directa: Si está en Railway usa tu URL interna, si no, cae en local
+const db = process.env.PORT 
+  ? mysql.createConnection('mysql://root:BmXRGaXRtiNyOEQUYzOBKyouluOZUHJJ@mysql.railway.internal:3306/railway')
   : mysql.createConnection({
       host: 'localhost',
       user: 'root',
@@ -24,7 +24,7 @@ db.connect((err) => {
   if (err) {
     console.error('Error conectando a la Base de Datos:', err);
   } else {
-    console.log('¡Conexión exitosa a la base de datos!');
+    console.log('¡Conexión exitosa a la base de datos de Railway!');
   }
 });
 
@@ -74,11 +74,10 @@ app.delete('/api/jugadores/:id', (req, res) => {
 // Ruta de simulación de login para evitar errores 404 en el frontend
 app.post('/api/login', (req, res) => {
   const { password } = req.body;
-  // Modifica esto después si quieres una contraseña real
   res.json({ success: true, message: 'Login exitoso' });
 });
 
-// Railway asigna el puerto automáticamente mediante process.env.PORT
+// Port flexible para Railway
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);
